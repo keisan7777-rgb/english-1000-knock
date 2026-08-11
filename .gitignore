@@ -1,0 +1,7 @@
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+.env
+# Instagram APIが取得するため、生成画像はGitHub Pagesへ公開します。
+# 投稿前の画像を公開したくない場合は別ストレージ構成へ変更してください。
