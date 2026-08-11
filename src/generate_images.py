@@ -87,6 +87,19 @@ def wrap_text(
 ) -> list[str]:
     lines: list[str] = []
     for paragraph in text.splitlines() or [""]:
+        ascii_count = sum(char.isascii() for char in paragraph)
+        if " " in paragraph and ascii_count >= len(paragraph) * 0.7:
+            words = paragraph.split()
+            current_words: list[str] = []
+            for word in words:
+                candidate = " ".join((*current_words, word))
+                if current_words and text_width(draw, candidate, text_font) > max_width:
+                    lines.append(" ".join(current_words))
+                    current_words = [word]
+                else:
+                    current_words.append(word)
+            lines.append(" ".join(current_words))
+            continue
         current = ""
         for char in paragraph:
             candidate = current + char
@@ -97,6 +110,22 @@ def wrap_text(
                 current = candidate
         lines.append(current.rstrip())
     return lines
+
+
+def font_to_fit_line(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    start_size: int,
+    min_size: int,
+    max_width: int,
+) -> ImageFont.FreeTypeFont:
+    size = start_size
+    while size > min_size:
+        candidate = font(size, bold=True)
+        if text_width(draw, text, candidate) <= max_width:
+            return candidate
+        size -= 2
+    return font(min_size, bold=True)
 
 
 def draw_wrapped(
@@ -142,7 +171,10 @@ def slide_one(row: dict[str, str]) -> Image.Image:
     draw.line((1004, 210, 850, 336), fill=INK, width=8)
     draw.rounded_rectangle((MARGIN, 190, 388, 252), radius=28, fill=OFF_WHITE, outline=INK, width=4)
     draw.text((112, 202), "今日のひとこと", font=font(28, bold=True), fill=INK)
-    jp_font = font(104 if len(row["japanese"]) <= 10 else 76, bold=True)
+    if len(row["japanese"]) <= 10:
+        jp_font = font_to_fit_line(draw, row["japanese"], 104, 68, 700)
+    else:
+        jp_font = font(76, bold=True)
     draw_wrapped(draw, (MARGIN, 326), row["japanese"], jp_font, INK, 820, spacing=10, max_lines=3)
     draw.rounded_rectangle((48, 594, WIDTH - 48, 1115), radius=54, fill=INK)
     draw.text((MARGIN, 647), "NATURAL ENGLISH", font=font(27, bold=True), fill=LIME)
